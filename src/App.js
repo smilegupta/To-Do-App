@@ -1,82 +1,172 @@
-/* src/App.js */
-import React, { useEffect, useState } from 'react'
-import Amplify, { API, graphqlOperation } from 'aws-amplify'
-import { createTodo } from './graphql/mutations'
-import { listTodos } from './graphql/queries'
-import { withAuthenticator } from '@aws-amplify/ui-react'
-
+import React, { useEffect, useState } from "react";
+import Amplify, { API, graphqlOperation } from "aws-amplify";
+import { createTodo, deleteTodo } from "./graphql/mutations";
+import { listTodos } from "./graphql/queries";
+import { withAuthenticator } from "@aws-amplify/ui-react";
 import awsExports from "./aws-exports";
 Amplify.configure(awsExports);
+var randomColor = require("randomcolor");
 
-const initialState = { name: '', description: '' }
+const initialState = { name: "", description: "" };
 
 const App = () => {
-  const [formState, setFormState] = useState(initialState)
-  const [todos, setTodos] = useState([])
+  const [todoList, setTodoList] = useState(null);
+  const [apiLoading, setApiLoading] = useState(false);
+  const [formState, setFormState] = useState(initialState);
+  const [todos, setTodos] = useState([]);
+  const [modalIsOpen, setIsOpen] = React.useState(false);
 
   useEffect(() => {
-    fetchTodos()
-  }, [])
-
-  function setInput(key, value) {
-    setFormState({ ...formState, [key]: value })
-  }
+    fetchTodos();
+  }, []);
 
   async function fetchTodos() {
     try {
-      const todoData = await API.graphql(graphqlOperation(listTodos))
-      const todos = todoData.data.listTodos.items
-      setTodos(todos)
-    } catch (err) { console.log('error fetching todos') }
+      const todoData = await API.graphql(graphqlOperation(listTodos));
+      console.log(todoData);
+      setTodoList(todoData.data.listTodos.items);
+      setApiLoading(true);
+    } catch (err) {
+      console.log("error fetching todos");
+    }
   }
 
   async function addTodo() {
     try {
-      if (!formState.name || !formState.description) return
-      const todo = { ...formState }
-      setTodos([...todos, todo])
-      setFormState(initialState)
-      await API.graphql(graphqlOperation(createTodo, {input: todo}))
+      if (!formState.name || !formState.description) return;
+      const todo = { ...formState };
+      setTodos([...todos, todo]);
+      setFormState(initialState);
+      await API.graphql(graphqlOperation(createTodo, { input: todo }));
+      fetchTodos();
     } catch (err) {
-      console.log('error creating todo:', err)
+      console.log("error creating todo:", err);
+    }
+  }
+
+  function setInput(key, value) {
+    setFormState({ ...formState, [key]: value });
+  }
+
+  async function deleteTodo(id) {
+    console.log("In Delelte Todo");
+    const request = { id: `${id}` };
+    try {
+      await API.graphql(
+        graphqlOperation(deleteTodo, { input: request })
+      );
+    } catch (err) {
+      console.log("error in deleting todo:", err);
     }
   }
 
   return (
-    <div style={styles.container}>
-      <h2>Amplify Todos</h2>
-      <input
-        onChange={event => setInput('name', event.target.value)}
-        style={styles.input}
-        value={formState.name}
-        placeholder="Name"
-      />
-      <input
-        onChange={event => setInput('description', event.target.value)}
-        style={styles.input}
-        value={formState.description}
-        placeholder="Description"
-      />
-      <button style={styles.button} onClick={addTodo}>Create Todo</button>
-      {
-        todos.map((todo, index) => (
-          <div key={todo.id ? todo.id : index} style={styles.todo}>
-            <p style={styles.todoName}>{todo.name}</p>
-            <p style={styles.todoDescription}>{todo.description}</p>
+    <div className="container d-flex justify-content-start flex-column mt-5">
+      <div className="row">
+        <div className="col-12 text-center">
+          <h2>
+            {" "}
+            My To Do List &nbsp;{" "}
+            {
+              modalIsOpen === false ? (<i
+                className="las la-plus"
+                style={{ cursor: "pointer" }}
+                onClick={() => setIsOpen(true)}
+              ></i>) : (<i
+                className="las la-minus"
+                style={{ cursor: "pointer" }}
+                onClick={() => setIsOpen(false)}
+              ></i>)
+            }
+          </h2>
+        </div>
+      </div>
+      {modalIsOpen === true && (
+        <div className="row justify-content-md-center m-4">
+          <div className="col-md-4 col-xs-12">
+            <div class="form-group">
+              <label for="exampleInputEmail1">Enter the Task</label>
+              <input
+                type="name"
+                class="form-control"
+                onChange={(event) => setInput("name", event.target.value)}
+                value={formState.name}
+                placeholder="Name"
+              />
+            </div>
+
+            <div class="form-group">
+              <label for="exampleInputEmail1">Enter the Description </label>
+              <input
+                type="name"
+                class="form-control"
+                onChange={(event) =>
+                  setInput("description", event.target.value)
+                }
+                value={formState.description}
+                placeholder="Description"
+              />
+            </div>
+
+            <div className="col-12" style={{ paddingRight: "0px" }}>
+              <button class="btn btn-primary float-right ml-2" onClick={addTodo}>
+                Create Todo
+              </button>
+              <button
+                class="btn btn-info float-right"
+                onClick={() => setIsOpen(false)}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-        ))
-      }
+        </div>
+      )}
+
+      {apiLoading === true ? (
+        <>
+          {todoList.length > 0 && todoList !== null ? (
+            <div className="row justify-content-md-center m-4">
+              {todoList.map((item, idx) => (
+                <div
+                  className="card col-md-3 col-xs-12 m-2"
+                  style={{
+                    backgroundColor: `${randomColor({ luminosity: "light" })}`,
+                    color: "#000000",
+                  }}
+                  key={idx}
+                >
+                  <div className="card-body">
+                    <h5 className="card-title">{item.name}</h5>
+                    <p className="card-text">{item.description}</p>
+                  </div>
+                  {/* <div
+                    className="text-right"
+                    style={{ cursor: "pointer" }}
+                    onClick={() => deleteTodo(item.id)}
+                  >
+                    {" "}
+                    <i className="las la-trash"></i>{" "}
+                  </div> */}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <h5 className="text-center mt-2">
+              {" "}
+              Oops you don't have any Task in your To Do List!
+            </h5>
+          )}
+        </>
+      ) : (
+        <div className="d-flex justify-content-center mt-4">
+          <div className="spinner-grow text-primary" role="status">
+            <span className="sr-only">Loading... </span>
+          </div>
+        </div>
+      )}
     </div>
-  )
-}
+  );
+};
 
-const styles = {
-  container: { width: 400, margin: '0 auto', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 20 },
-  todo: {  marginBottom: 15 },
-  input: { border: 'none', backgroundColor: '#ddd', marginBottom: 10, padding: 8, fontSize: 18 },
-  todoName: { fontSize: 20, fontWeight: 'bold' },
-  todoDescription: { marginBottom: 0 },
-  button: { backgroundColor: 'black', color: 'white', outline: 'none', fontSize: 18, padding: '12px 0px' }
-}
-
-export default withAuthenticator(App)
+export default withAuthenticator(App);
