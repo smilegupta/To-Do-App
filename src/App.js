@@ -4,25 +4,27 @@ import { createTodo, deleteTodo } from "./graphql/mutations";
 import { listTodos } from "./graphql/queries";
 import { withAuthenticator } from "@aws-amplify/ui-react";
 import awsExports from "./aws-exports";
+import { toast } from "react-toastify";
+toast.configure();
 Amplify.configure(awsExports);
 
-const initialState = { name: "", description: "" };
-
 const App = () => {
+  //State Variables
   const [todoList, setTodoList] = useState(null);
   const [apiLoading, setApiLoading] = useState(false);
-  const [formState, setFormState] = useState(initialState);
   const [todos, setTodos] = useState([]);
   const [modalIsOpen, setIsOpen] = React.useState(false);
+  const [name, setName] = useState("")
+  const [description, setDescription] = useState("")
 
   useEffect(() => {
     fetchTodos();
   }, []);
 
+  // FUnction to list all to do present in system
   async function fetchTodos() {
     try {
       const todoData = await API.graphql(graphqlOperation(listTodos));
-      console.log(todoData);
       setTodoList(todoData.data.listTodos.items);
       setApiLoading(true);
     } catch (err) {
@@ -30,30 +32,46 @@ const App = () => {
     }
   }
 
+  // Function to add to do item
   async function addTodo() {
     try {
-      if (!formState.name || !formState.description) return;
-      const todo = { ...formState };
+      if (!name || !description) return;
+      const todo = { name, description };
       setTodos([...todos, todo]);
-      setFormState(initialState);
+      console.log(todo)
       await API.graphql(graphqlOperation(createTodo, { input: todo }));
+      const message = "Bingo! You have created a new Todo item";
+      toast.success(message, {
+        position: "top-right",
+        autoClose: 0,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
       fetchTodos();
     } catch (err) {
       console.log("error creating todo:", err);
     }
   }
 
-  function setInput(key, value) {
-    setFormState({ ...formState, [key]: value });
-  }
-
+  // Function to delete todo item
   async function deleteTodoFun(id) {
     const request = { id: `${id}` };
     try {
       await API.graphql(
         graphqlOperation(deleteTodo, { input: request  })
       );
-      fetchTodos();
+      const message = "Your Todo item have been deleted";
+      toast.success(message, {
+        position: "top-right",
+        autoClose: 0,
+        hideProgressBar: false,
+        closeOnClick: true,
+        pauseOnHover: true,
+        draggable: true,
+      });
+      await fetchTodos();
     } catch (err) {
       console.log("error in deleting todo:", err);
     }
@@ -83,36 +101,36 @@ const App = () => {
       {modalIsOpen === true && (
         <div className="row justify-content-md-center m-4">
           <div className="col-md-4 col-xs-12">
-            <div class="form-group">
-              <label for="exampleInputEmail1">Enter the Task</label>
+            <div className="form-group">
+              <label htmlFor="name">Enter the Task</label>
               <input
                 type="name"
-                class="form-control"
-                onChange={(event) => setInput("name", event.target.value)}
-                value={formState.name}
+                className="form-control"
+                onChange={(event) => setName(event.target.value)}
+                value={name}
                 placeholder="Name"
               />
             </div>
 
-            <div class="form-group">
-              <label for="exampleInputEmail1">Enter the Description </label>
+            <div className="form-group">
+              <label htmlFor="description">Enter the Description </label>
               <input
                 type="name"
-                class="form-control"
+                className="form-control"
                 onChange={(event) =>
-                  setInput("description", event.target.value)
+                  setDescription(event.target.value)
                 }
-                value={formState.description}
+                value={description}
                 placeholder="Description"
               />
             </div>
 
             <div className="col-12" style={{ paddingRight: "0px" }}>
-              <button class="btn btn-primary float-right ml-2" onClick={addTodo}>
+              <button className="btn btn-primary float-right ml-2" onClick={addTodo}>
                 Create Todo
               </button>
               <button
-                class="btn btn-info float-right"
+                className="btn btn-info float-right"
                 onClick={() => setIsOpen(false)}
               >
                 Cancel
