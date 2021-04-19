@@ -5,7 +5,6 @@ import { listTodos } from "./graphql/queries";
 import { withAuthenticator } from "@aws-amplify/ui-react";
 import awsExports from "./aws-exports";
 Amplify.configure(awsExports);
-var randomColor = require("randomcolor");
 
 const initialState = { name: "", description: "" };
 
@@ -48,13 +47,13 @@ const App = () => {
     setFormState({ ...formState, [key]: value });
   }
 
-  async function deleteTodo(id) {
-    console.log("In Delelte Todo");
+  async function deleteTodoFun(id) {
     const request = { id: `${id}` };
     try {
       await API.graphql(
-        graphqlOperation(deleteTodo, { input: request })
+        graphqlOperation(deleteTodo, { input: request  })
       );
+      fetchTodos();
     } catch (err) {
       console.log("error in deleting todo:", err);
     }
@@ -131,7 +130,7 @@ const App = () => {
                 <div
                   className="card col-md-3 col-xs-12 m-2"
                   style={{
-                    backgroundColor: `${randomColor({ luminosity: "light" })}`,
+                    backgroundColor: "white",
                     color: "#000000",
                   }}
                   key={idx}
@@ -140,14 +139,14 @@ const App = () => {
                     <h5 className="card-title">{item.name}</h5>
                     <p className="card-text">{item.description}</p>
                   </div>
-                  {/* <div
+                  <div
                     className="text-right"
                     style={{ cursor: "pointer" }}
-                    onClick={() => deleteTodo(item.id)}
+                    onClick={() => deleteTodoFun(item.id)}
                   >
                     {" "}
                     <i className="las la-trash"></i>{" "}
-                  </div> */}
+                  </div>
                 </div>
               ))}
             </div>
